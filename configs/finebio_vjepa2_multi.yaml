@@ -1,0 +1,65 @@
+dataset_name: finebio
+train_split: ['train']
+val_split: ['valid']
+test_split: ['test']
+model_name: "MultiPredictionLocPointTransformer"
+dataset: {
+  json_file: data/annotations/annotation_all.json,
+  feat_folder: data/vjepa2_feats,
+  file_prefix: ~,
+  file_ext: .npy,
+  type_names: ["verb", "manipulated", "affected"],
+  hands: [],
+  input_dim: 1024, # giant = 1408, large = 1024
+  feat_stride: 4,
+  num_frames: 16,
+  # serve as data augmentation
+  trunc_thresh: 0.3,
+  crop_ratio: [0.9, 1.0],
+  max_seq_len: 3328
+}
+model: {
+  fpn_type: fpn, # identity or fpn
+  backbone_arch: [3, 3, 5],
+  scale_factor: 2, # scale factor between pyramid levels
+  regression_range: [[0, 4], [2, 8], [4, 16], [8, 32], [16, 64], [32, 10000]],
+  n_head: 4, # default: 4
+  max_buffer_len_factor: 4.0,
+  n_mha_win_size: 9,
+  embd_dim: 512, # *_dim % n_head == 0
+  fpn_dim: 512,
+  head_dim: 512,
+  head_num_layers: 4, # default: 3
+  use_abs_pe: True, # abs position encoding (added to input embedding)
+  use_rel_pe: True, # use rel position encoding (added to self-attention)
+}
+opt: {
+  learning_rate: 0.0001, # default 1e-3
+  epochs: 40, # excluding warmup epochs
+  weight_decay: 0.05, # default 0
+  warmup: True,
+  warmup_epochs: 5, # default: 5
+}
+loader: {
+  batch_size: 2,
+}
+train_cfg: {
+  loss_weight: 1.0, # Default: 1.0. reg_loss, use -1 to enable auto balancing
+  init_loss_norm: 250,
+  clip_grad_l2norm: -1.0, # gradient cliping, not needed for pre-LN transformer
+  cls_prior_prob: 0.01,
+  center_sample: radius, # radius or none
+  center_sample_radius: 1.5,
+  label_smoothing: 0.1,
+}
+test_cfg: {
+  pre_nms_thresh: 0.001, # smaller thresh -> more segments are kept
+  pre_nms_topk: 5000,
+  min_score: 0.01,
+  max_seg_num: 2000,
+  nms_method: 'soft', # soft | hard | none
+  nms_sigma: 0.4, # lower sigma -> stronger suppresion
+  duration_thresh: 0.05,
+  multiclass_nms: True,
+}
+output_folder: outputs/multi/vjepa2
